@@ -53,6 +53,18 @@ def aes128_decrypt_raw(data,key):
     decrypted = aes128.decrypt(data)
     return decrypted
 
+def aes256_decrypt(data, key):
+    assert len(key) == 32, "Key must be 32 bytes for AES-256"
+    aes256 = AES.new(key, AES.MODE_CBC, b"\x00" * 16)
+    decrypted = aes256.decrypt(data)
+    return decrypted.decode("utf-16-le")
+
+def aes256_decrypt_raw(data, key):
+    assert len(key) == 32, "Key must be 32 bytes for AES-256"
+    aes256 = AES.new(key, AES.MODE_CBC, b"\x00" * 16)
+    decrypted = aes256.decrypt(data)
+    return decrypted
+
 def _3des_decrypt(data,key):
 
     _3des = DES3.new(key, DES3.MODE_CBC, b"\x00"*8)
