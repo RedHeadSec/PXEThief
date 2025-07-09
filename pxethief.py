@@ -359,33 +359,42 @@ def deobfuscate_credential_string(credential_string):
     return media_crypto._3des_decrypt(encrypted_data[:last_16],key[:24])
 
 def decrypt_media_file(path, password):
-
-    password_is_string = True
     print("[+] Media variables file to decrypt: " + path)
-    if type(password) == str:
-        password_is_string = True
-        print("[+] Password provided: " + password)
-    else:
-        password_is_string = False
-        print("[+] Password bytes provided: 0x" + password.hex())
 
-    # Decrypt encryted media variables file
-    encrypted_file = media_crypto.read_media_variable_file(path) 
+    if isinstance(password, str):
+        print("[+] Password provided: " + password)
+        password_bytes = password.encode("utf-16-le")
+    else:
+        print("[+] Password bytes provided: 0x" + password.hex())
+        password_bytes = password
+
+    # Read encrypted file contents
+    encrypted_file = media_crypto.read_media_variable_file(path)
+
     try:
-        if password_is_string:
-            key = media_crypto.aes_des_key_derivation(password.encode("utf-16-le"))
-        else:
-            key = media_crypto.aes_des_key_derivation(password)
-        last_16 = math.floor(len(encrypted_file)/16)*16
-        decrypted_media_file = media_crypto.aes128_decrypt(encrypted_file[:last_16],key[:16])
-        decrypted_media_file =  decrypted_media_file[:decrypted_media_file.rfind('\x00')]
-        wf_decrypted_ts = "".join(c for c in decrypted_media_file if c.isprintable())
-        print("[+] Successfully decrypted media variables file with the provided password!")
-        #write_to_file("ts_media_variables",wf_decrypted_ts)
-    except:
+        # Derive key from password
+        key = media_crypto.aes_des_key_derivation(password_bytes)
+        last_16 = math.floor(len(encrypted_file) / 16) * 16
+
+        # Try AES-256 first
+        try:
+            print("[*] Trying AES-256 decryption")
+            decrypted = media_crypto.aes256_decrypt(encrypted_file[:last_16], key[:32])
+            decrypted = decrypted[:decrypted.rfind('\x00')]
+            wf_decrypted_ts = "".join(c for c in decrypted if c.isprintable())
+            print("[+] Successfully decrypted with AES-256")
+        except UnicodeDecodeError:
+            print("[*] AES-256 failed, trying AES-128 fallback")
+            decrypted = media_crypto.aes128_decrypt(encrypted_file[:last_16], key[:16])
+            decrypted = decrypted[:decrypted.rfind('\x00')]
+            wf_decrypted_ts = "".join(c for c in decrypted if c.isprintable())
+            print("[+] Successfully decrypted with AES-128")
+
+    except Exception as e:
         print("[-] Failed to decrypt media variables file. Check the password provided is correct")
+        print("Error:", str(e))
         sys.exit(-1)
-    
+
     return wf_decrypted_ts
 
 def process_pxe_bootable_and_prestaged_media(media_xml):
