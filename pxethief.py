@@ -696,7 +696,7 @@ def analyse_task_sequence_for_potential_creds(ts_xml):
 
                     for el in par.xpath('//*[contains(translate(@name,"ABCDEFGHIJKLMNOPQRSTUVWXYZ","abcdefghijklmnopqrstuvwxyz"),"' + unique_word + '")]'):
                         if el != element: #duplicate tags that match more than one keyword
-                            print(el.attrib["name"] + " - " + el.text)        
+                            print(f'{el.attrib["name"]} - {el.text if el.text is not None else "None"}')        
                     
                 print(element.attrib["name"] + " - " + str(element.text))
                 print()
